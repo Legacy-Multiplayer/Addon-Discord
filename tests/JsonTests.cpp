@@ -73,7 +73,8 @@ int main()
         message.Set("embeds", Json::Value(embeds));
         message.Set("allowed_mentions", Json::Value(Json::Object{{"parse", Json::Value(Json::Array{})}}));
         const auto text = Json::Dump(message);
-        CHECK(text == R"({"content":"line1\nline2 \"q\" \\ \t","tts":false,"flags":64,"embeds":[{"title":"Status","color":14886955}],"allowed_mentions":{"parse":[]}})");
+        const std::string expected = R"({"content":"line1\nline2 \"q\" \\ \t","tts":false,"flags":64,"embeds":[{"title":"Status","color":14886955}],"allowed_mentions":{"parse":[]}})";
+        CHECK(text == expected);
         const auto back = Json::Parse(text);
         CHECK(back["content"].String() == "line1\nline2 \"q\" \\ \t");
         CHECK(back["embeds"].Items()[0]["color"].Integer() == 14886955);
@@ -107,7 +108,8 @@ int main()
         object.Set("b", 2);
         object.Set("a", 3);
         object.Remove("b");
-        CHECK(Json::Dump(object) == R"({"a":3})");
+        const std::string expected = R"({"a":3})";
+        CHECK(Json::Dump(object) == expected);
     }
 
     {
