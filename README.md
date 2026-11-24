@@ -38,6 +38,6 @@ For an existing checkout, run `git submodule update --init --recursive`. The SDK
 
 Pushes to `main` and pull requests build Windows x86 and Linux x86, run offline tests, and upload packages under **Actions → Build plugins → Artifacts**. Packages include the library, documentation, source/SDK revision manifest and a SHA-256 checksum. Windows produces `.dll`; Linux produces `.so`. A successful compilation does not prove live server behavior.
 
-To prepare a release, manually run **Build plugins** on `main` with a new tag such as `v1.0.0`. Both builds must pass before a **draft** can be created. Nothing publishes automatically. See [Publishing](docs/PUBLISHING.md) and [Validation](docs/VALIDATION.md).
+To prepare a release, manually run **Build plugins** on `main` with a new tag such as `v1.0.0`. Both builds must pass before a **draft** can be created. Nothing publishes automatically.
 
 **Release blocker:** Linux currently uses a nonfunctional transport stub. Its Actions artifact is for build validation only. Draft-release creation is deliberately blocked until Linux networking is implemented and validated. Do not distribute that `.so` as a working Discord connector.
