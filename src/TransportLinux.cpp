@@ -409,6 +409,10 @@ private:
     {
         if (finished) return;
         finished = true;
+        // Closing the TCP socket does not cancel Beast's independent idle
+        // timer. Disable it so cancelled handlers drain and io.run can finish.
+        socket.set_option(websocket::stream_base::timeout{
+            websocket::stream_base::none(), websocket::stream_base::none(), false});
         Error ignored;
         timer.cancel(ignored);
         resolver.cancel();

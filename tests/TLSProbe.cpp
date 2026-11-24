@@ -10,6 +10,39 @@ int main(int argc, char** argv)
     Transport::Response response;
     const std::string mode = argv[3];
     const auto start = std::chrono::steady_clock::now();
+    if (mode == "websocket")
+    {
+        Transport::WebSocket socket;
+        for (int pass = 0; pass < 2; ++pass)
+        {
+            std::string error, text;
+            int code = 0;
+            if (!socket.Connect(argv[1], argv[2], error)
+                || socket.Receive(text, code, error) != Transport::Frame::Text || text != "hello"
+                || !socket.Send("client")
+                || socket.Receive(text, code, error) != Transport::Frame::Text || text != "ack")
+            {
+                std::printf("WebSocket fixture failed: %s\n", error.c_str());
+                return 1;
+            }
+            const auto cancelStart = std::chrono::steady_clock::now();
+            if (pass == 0)
+            {
+                std::thread reader([&]() { socket.Receive(text, code, error); });
+                std::this_thread::sleep_for(std::chrono::milliseconds(50));
+                socket.Abort();
+                reader.join();
+            }
+            else
+            {
+                socket.Close(1000);
+                if (socket.Receive(text, code, error) != Transport::Frame::Closed || code != 1000) return 1;
+                socket.Abort();
+            }
+            if (std::chrono::steady_clock::now() - cancelStart > std::chrono::seconds(3)) return 1;
+        }
+        return 0;
+    }
     if (mode == "cancel")
     {
         std::thread worker([&]() { response = https.Request(argv[1], "GET", argv[2], {}, ""); });
