@@ -2,6 +2,8 @@
 #include "Transport.h"
 
 #include <cstdio>
+#include <chrono>
+#include <thread>
 
 int main()
 {
@@ -50,6 +52,34 @@ int main()
         ++failures;
     }
 
+    // Heartbeats are valid before Identify: exercise actual client-to-server
+    // WebSocket writes without a bot token or application messages.
+    if (!socket.Send(R"({"op":1,"d":null})"))
+    {
+        std::puts("WEBSOCKET FAILED: heartbeat send");
+        return 1;
+    }
+    if (socket.Receive(text, code, reason) != Transport::Frame::Text
+        || Json::Parse(text)["op"].Integer(-1) != 11)
+    {
+        std::puts("WEBSOCKET FAILED: no heartbeat ACK");
+        return 1;
+    }
+    std::puts("WebSocket heartbeat ACK ok");
+
+    // Abort must wake a blocked receive, and the same public object can reconnect.
+    std::thread reader([&]() { socket.Receive(text, code, reason); });
+    std::this_thread::sleep_for(std::chrono::milliseconds(25));
+    socket.Abort();
+    reader.join();
+    if (!socket.Connect("gateway.discord.gg", "/?v=10&encoding=json", error)
+        || socket.Receive(text, code, reason) != Transport::Frame::Text
+        || Json::Parse(text)["op"].Integer(-1) != 10)
+    {
+        std::puts("WEBSOCKET FAILED: reconnect after cancellation");
+        return 1;
+    }
+    std::puts("WebSocket blocked-read cancellation and reconnect ok");
     socket.Close(1000);
     socket.Abort();
     return failures ? 1 : 0;

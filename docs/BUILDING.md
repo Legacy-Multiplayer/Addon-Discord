@@ -24,15 +24,18 @@ Output: `build/Release/Addon-Discord.dll`; package: `dist/Addon-Discord-windows-
 On Ubuntu 22.04, install the compiler and multilib development libraries:
 
 ```sh
+sudo dpkg --add-architecture i386
 sudo apt-get update
-sudo apt-get install -y cmake gcc-multilib g++-multilib
-cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS=-m32
+sudo apt-get install -y cmake gcc-multilib g++-multilib libboost-dev libssl-dev:i386 ca-certificates openssl python3
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS=-m32 \
+  -DOPENSSL_SSL_LIBRARY=/usr/lib/i386-linux-gnu/libssl.so \
+  -DOPENSSL_CRYPTO_LIBRARY=/usr/lib/i386-linux-gnu/libcrypto.so
 cmake --build build --parallel 2
 ctest --test-dir build --output-on-failure --no-tests=error
 python3 .github/scripts/package.py linux-x86
 ```
 
-Output: `build/Addon-Discord.so`; package: `dist/Addon-Discord-linux-x86.tar.gz`. The target machine needs compatible 32-bit C/C++ runtimes. The package is not a 64-bit plugin.
+Output: `build/Addon-Discord.so`; package: `dist/Addon-Discord-linux-x86.tar.gz`. The target machine needs compatible 32-bit C/C++ runtimes, OpenSSL 3 libraries and CA certificates. On Ubuntu 22.04 enable the i386 architecture and install `libssl3:i386`, `libstdc++6:i386` and `ca-certificates`. Boost is header-only in this build; it is not a runtime dependency. The package is not a 64-bit plugin.
 
 The packager requires a committed, clean checkout. For local packaging validation before the first commit, use `--allow-uncommitted`; its manifest explicitly records uncommitted/dirty source. Do not publish that validation package. A custom build directory can be supplied with `--build-dir`.
 
@@ -44,13 +47,13 @@ The native addon API remains version 1. The exported SDK layout fingerprint must
 
 Stop the server, extract the matching library into its `addons` directory, enable it in the server configuration, and restart. Check the addon initialization log and exercise the Lua API. GitHub Actions prepares downloadable artifacts and draft releases; it does not deploy to a running server.
 
-## Current platform limitation
+## Networking and checks
 
-Windows uses system WinHTTP. Linux currently compiles a transport stub which returns an unsupported-transport error. A Linux build checks portability of the remaining source only; it cannot run a Discord bot. The manual draft-release job is blocked by `.github/release.json`. Do not mark it ready merely to make CI green.
+Windows uses WinHTTP; Linux uses Boost 1.74+ headers and OpenSSL. TLS verifies the certificate chain and peer hostname, with TLS 1.2 minimum. All Linux native socket operations are serialized through their event loop. Request cancellation and bounded message queues keep networking independent of Lua callbacks; callbacks still run on the server thread.
 
-## Optional Windows connectivity check
+Linux CTest includes local TLS fixtures for a trusted certificate, an untrusted certificate, wrong hostname, response/header parsing, oversized response and cancellation. The fixtures generate an ephemeral certificate with the OpenSSL command-line tool and contact only loopback.
 
-Run `build/Release/LiveProbe.exe` manually. It requests Discord's public Gateway URL and waits for an anonymous WebSocket Hello. It needs no bot token and sends no bot messages. It is excluded from offline CTest runs because it requires external network access. Passing it does not validate authentication, command registration, reconnect/resume or bot permissions.
+Run `build/Release/LiveProbe.exe` on Windows or `./build/LiveProbe` on Linux for a token-free Discord connection check. It requests the public Gateway URL, receives Hello, sends a protocol heartbeat, checks its ACK, cancels a blocked read and reconnects. It sends no bot messages and does not authenticate. GitHub Actions also runs it on Linux with a 60-second deadline. External connectivity is required. Passing it does not validate bot permissions, authenticated session resume or live server Lua behavior.
 
 ## Bot setup
 

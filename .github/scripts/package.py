@@ -79,10 +79,9 @@ def main():
     status = subprocess.check_output(["git", "status", "--porcelain"], cwd=ROOT, text=True)
     if status and not args.allow_uncommitted:
         raise RuntimeError("Release packaging requires a clean source checkout")
-    readiness = json.loads((ROOT / ".github/release.json").read_text(encoding="utf-8"))
     manifest = {"repository": revision(ROOT, args.allow_uncommitted),
                 "sdk": revision(ROOT / "SDK", False), "platform": args.platform,
-                "api_version": 1, "dirty": bool(status), "release_readiness": readiness,
+                "api_version": 1, "dirty": bool(status),
                 "binary_sha256": hashlib.sha256(data).hexdigest()}
     destination = ROOT / "dist"
     destination.mkdir(exist_ok=True)

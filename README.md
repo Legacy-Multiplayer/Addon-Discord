@@ -23,7 +23,7 @@ end)
 
 See [docs/API.md](docs/API.md) for every function and event, [docs/BUILDING.md](docs/BUILDING.md) to compile, and [examples](examples/README.md) for a minimal bot.
 
-The transport uses WinHTTP, so networking currently works on Windows only. The Linux build compiles with a stub transport that reports an error instead of connecting.
+Windows uses WinHTTP. Linux uses Boost.Beast and OpenSSL for HTTPS and WebSocket connections, with system certificate trust, hostname verification and TLS 1.2 or newer. Both platforms use the same Lua API.
 
 ## Get the source
 
@@ -40,4 +40,10 @@ Pushes to `main` and pull requests build Windows x86 and Linux x86, run offline 
 
 To prepare a release, manually run **Build plugins** on `main` with a new tag such as `v1.0.0`. Both builds must pass before a **draft** can be created. Nothing publishes automatically.
 
-**Release blocker:** Linux currently uses a nonfunctional transport stub. Its Actions artifact is for build validation only. Draft-release creation is deliberately blocked until Linux networking is implemented and validated. Do not distribute that `.so` as a working Discord connector.
+## Install
+
+Extract the matching library into the stopped server's `addons` directory and enable it in the server configuration. Windows needs the x86 MSVC runtime. Linux needs compatible 32-bit C/C++ runtimes, OpenSSL 3 (`libssl.so.3` and `libcrypto.so.3`) and an up-to-date system CA certificate store; Boost is compiled into the addon and needs no runtime package.
+
+Store the bot token in the local `resources/discord.cfg`, never in the repository. Follow [bot setup](docs/BUILDING.md#bot-setup), then load the [example](examples/README.md). The addon SDK fingerprint must match your server.
+
+Offline tests and a token-free Discord connectivity probe exercise the transport. Bot authentication, permissions and live Lua behavior still require testing with your own application.

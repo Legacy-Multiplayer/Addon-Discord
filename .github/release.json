@@ -1,4 +1,0 @@
-{
-  "ready": false,
-  "reason": "Linux transport is a stub: the .so builds but cannot connect. Implement and validate Linux networking before release."
-}

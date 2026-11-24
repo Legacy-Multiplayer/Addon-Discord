@@ -286,7 +286,11 @@ bool Client::SendHeartbeat()
 Json::Value Client::IdentifyPayload() const
 {
     Json::Value properties;
+#ifdef _WIN32
     properties.Set("os", "windows");
+#else
+    properties.Set("os", "linux");
+#endif
     properties.Set("browser", "legacy-addon-discord");
     properties.Set("device", "legacy-addon-discord");
 
