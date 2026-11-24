@@ -57,6 +57,8 @@ class Handler(http.server.BaseHTTPRequestHandler):
                 self.wfile.write(bytes([129, 3]) + b"ack")
             elif opcode == 8:
                 self.wfile.write(bytes([136, len(payload)]) + payload)
+                # Complete TLS close_notify as well as the WebSocket close frame.
+                self.connection.unwrap().close()
                 return
             else:
                 raise ValueError("Unexpected WebSocket fixture frame")

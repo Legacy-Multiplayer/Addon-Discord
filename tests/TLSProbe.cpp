@@ -36,7 +36,12 @@ int main(int argc, char** argv)
             else
             {
                 socket.Close(1000);
-                if (socket.Receive(text, code, error) != Transport::Frame::Closed || code != 1000) return 1;
+                const auto frame = socket.Receive(text, code, error);
+                if (frame != Transport::Frame::Closed || code != 1000)
+                {
+                    std::printf("WebSocket close failed: code %d, %s\n", code, error.c_str());
+                    return 1;
+                }
                 socket.Abort();
             }
             if (std::chrono::steady_clock::now() - cancelStart > std::chrono::seconds(3)) return 1;
