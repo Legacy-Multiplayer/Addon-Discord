@@ -7,6 +7,7 @@
 
 int main()
 {
+    std::setvbuf(stdout, nullptr, _IONBF, 0);
     int failures = 0;
 
     Transport::Https https;
@@ -70,7 +71,9 @@ int main()
     // Abort must wake a blocked receive, and the same public object can reconnect.
     std::thread reader([&]() { socket.Receive(text, code, reason); });
     std::this_thread::sleep_for(std::chrono::milliseconds(25));
+    std::puts("Cancelling blocked WebSocket receive...");
     socket.Abort();
+    std::puts("WebSocket abort returned");
     reader.join();
     if (!socket.Connect("gateway.discord.gg", "/?v=10&encoding=json", error)
         || socket.Receive(text, code, reason) != Transport::Frame::Text
